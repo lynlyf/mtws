@@ -1,8 +1,8 @@
 function varargout = mtws(e,t,ipeak,walkaway)
 %% determine the left and right locations of windows aroun peaks
 % usage: 
-%   [ileft,iright] = mtws(e,t,ipeak,walkaway[,balance])
-%   [ileft,ipeak,iright] = mtws(e,t,{wsz[,base,k_med]},walkaway[,balance])
+%   [ileft,iright] = mtws(e,t,ipeak,walkaway)
+%   [ileft,ipeak,iright] = mtws(e,t,{wsz[,base,k_med]},walkaway)
 %
 %% input:
 %  e: envelope
@@ -13,8 +13,6 @@ function varargout = mtws(e,t,ipeak,walkaway)
 %    base: reject if a peak is lower than `base` (the same unit as `e`)
 %    k_med: reject if a peak if lower than `k_med*median(e)`
 %  walkaway: auxiliary line across [t(ipk),e(ipk)] and [t(ipk)+/-walkaway,0]
-%  balance: scale peak to walkaway (default, false)
-%    the dimension equalization is not necessary
 %% output: locations of the left and right edges of windows
 % 
 %%
@@ -28,6 +26,7 @@ t = t(:);
 dt = t(2) - t(1);
 %assert(walkaway>10*dt,'wrong walkaway');
 
+%% peak detection
 maxfilted = false;
 if iscell(ipeak) %(e,t,{wsz[,base,k_med]},walkaway[,balance])
     k = ipeak; % {wsz,base,k_med}
@@ -45,6 +44,7 @@ if iscell(ipeak) %(e,t,{wsz[,base,k_med]},walkaway[,balance])
 end
 ipeak = ipeak(:);
 
+%% edge determination
 [ileft,iright] = deal(nan(size(ipeak)));
 for ii = 1 : length(ipeak) % loop over peaks
     ipk = ipeak(ii);
@@ -54,12 +54,13 @@ for ii = 1 : length(ipeak) % loop over peaks
     [~,mid] = max(dis); % find max dis to the dip line
     ileft(ii) = sid(mid); % left bound at t(i1)
     %% right side
-    [x,sid] = subvec(t,t,t(ipk)+[dt,walkaway-dt]); % [0,walkaway] relative to peak
+    [x,sid] = subvec(t,t,t(ipk)+[dt,walkaway-dt]); % [walkaway,0] relative to peak
     dis = point_line_distance([x,e(sid)],[t(ipk),e(ipk)],[t(ipk)+walkaway,0]);
     [~,mid] = max(dis); % max dis to the dip line
     iright(ii) = sid(mid); % right bound at t(i2)
 end
 
+%% output
 if nargout > 1
     if maxfilted
         varargout = {ileft,ipeak,iright};
@@ -75,5 +76,4 @@ else
         varargout = {[ileft,iright]};
     end
 end
-
 %% EOF
